@@ -1,9 +1,10 @@
 package concurrent
 
-import "github.com/pkg/errors"
+import "errors"
 
 var (
-	InterruptedError = errors.New("Goroutine is interrupted.")
-	CancellationError = errors.New("Goroutine is cancelled.")
-	ExecutionError = errors.New("Goroutine execute error")
+	InterruptedError  = errors.New("goroutine is interrupted")
+	CancellationError = errors.New("goroutine is cancelled")
+	ExecutionError    = errors.New("goroutine execute error")
+	TimeoutError      = errors.New("timeout")
 )

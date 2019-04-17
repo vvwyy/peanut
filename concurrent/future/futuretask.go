@@ -26,21 +26,29 @@ const (
 )
 
 type FutureTask struct {
-	//parent context.Context
-	//current context.Context
 
-	mu         sync.Mutex // protects following fields
-	state      int32
-	executable executor.Executable
-	waiters    *WaitNode
-	//ctx        context.Context
+	mu           sync.Mutex // protects following fields
+	state        int32
+	executable   executor.Executable
+	waiters      *WaitNode
+	runnerCtx    context.Context
+	runnerCancel context.CancelFunc
 
 	err    error
 	result interface{}
 }
 
-func (futureTask *FutureTask) Run() {
-	// todo set runner
+func NewFutureTask(executable executor.Executable) *FutureTask {
+	return &FutureTask{
+		executable: executable,
+		state:      NEW,
+	}
+}
+
+func (futureTask *FutureTask) Run(parentCtx context.Context) {
+	// set runner
+	// not save parent context in future
+	futureTask.runnerCtx, futureTask.runnerCancel = context.WithCancel(parentCtx)
 
 	e := futureTask.executable
 	if e == nil || futureTask.state != NEW {
@@ -49,8 +57,9 @@ func (futureTask *FutureTask) Run() {
 	result, err := e.Run()
 	if err != nil {
 		futureTask.setError(err)
+	} else {
+		futureTask.setResult(result)
 	}
-	futureTask.setResult(result)
 
 	state := futureTask.state
 	if state >= INTERRUPTING {
@@ -70,10 +79,14 @@ func (futureTask *FutureTask) Cancel(mayInterruptIfRunning bool) bool {
 		return false
 	}
 	if mayInterruptIfRunning {
-		// todo 中断当前任务
-	}
+		// 中断当前任务
+		futureTask.runnerCancel()
 
-	futureTask.finishCompletion()
+		futureTask.mu.Lock()
+		futureTask.state = INTERRUPTED
+		futureTask.finishCompletion()
+		futureTask.mu.Unlock()
+	}
 	return true
 }
 
@@ -88,9 +101,8 @@ func (futureTask *FutureTask) IsDone() bool {
 func (futureTask *FutureTask) Get() (interface{}, error) {
 	s := futureTask.state
 	if s <= COMPLETING {
-		ctx, cancelFunc := context.WithCancel(context.TODO())
 		var err error
-		s, err = futureTask.awaitDone(ctx, cancelFunc, false, 0)
+		s, err = futureTask.awaitDone(false, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -99,11 +111,26 @@ func (futureTask *FutureTask) Get() (interface{}, error) {
 }
 
 func (futureTask *FutureTask) GetWithTimeout(d time.Duration) (interface{}, error) {
-	// todo
-	return nil, nil
+	s := futureTask.state
+	if s <= COMPLETING {
+		var err error
+		s, err = futureTask.awaitDone(true, d)
+		if err != nil {
+			return nil, err
+		}
+		if s >= COMPLETING {
+			return nil, concurrent.TimeoutError
+		}
+	}
+	return futureTask.report(s)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+
+func (futureTask *FutureTask) createWithCancel () (context.Context, context.CancelFunc) {
+	return context.WithCancel(futureTask.runnerCtx)
+}
+
 
 func (futureTask *FutureTask) report(state int32) (interface{}, error) {
 	ret := futureTask.result
@@ -153,11 +180,12 @@ type WaitNode struct {
 // Removes and signals all waiting goroutine
 func (futureTask *FutureTask) finishCompletion() {
 	for node := futureTask.waiters; node != nil; {
-		p := unsafe.Pointer(futureTask.waiters)
-		if atomic.CompareAndSwapPointer(&p, node, nil) {
+		//p := unsafe.Pointer(futureTask.waiters)
+		//if atomic.CompareAndSwapPointer(&p, node, nil) {
+		if atomic.CompareAndSwapUintptr((*uintptr)(unsafe.Pointer(&futureTask.waiters)), uintptr(unsafe.Pointer(node)), uintptr(unsafe.Pointer(nil))) {
 			for {
 				// signals waiting goroutine
-				// todo
+				node.cancel()
 				nextNode := node.next
 				if nextNode == nil {
 					break
@@ -177,7 +205,7 @@ func (futureTask *FutureTask) done() {
 }
 
 // Awaits completion or aborts on interrupt or timeout.
-func (futureTask *FutureTask) awaitDone(ctx context.Context, cancelFunc context.CancelFunc, timed bool, nanos time.Duration) (int32, error) {
+func (futureTask *FutureTask) awaitDone(timed bool, nanos time.Duration) (int32, error) {
 	var deadline = time.Now()
 	if timed {
 		deadline = deadline.Add(nanos)
@@ -186,7 +214,7 @@ func (futureTask *FutureTask) awaitDone(ctx context.Context, cancelFunc context.
 	queued := false
 	var q *WaitNode = nil
 	for {
-		if ctx.Err() != nil {
+		if futureTask.runnerCtx.Err() != nil {
 			return NIL, concurrent.InterruptedError
 		}
 
@@ -199,13 +227,14 @@ func (futureTask *FutureTask) awaitDone(ctx context.Context, cancelFunc context.
 		} else if s == COMPLETING {
 			// need to yield
 			time.Sleep(10 * time.Microsecond)
-			continue
 		} else if q == nil {
+			ctx, cancelFunc := futureTask.createWithCancel()
 			q = &WaitNode{gotx: ctx, cancel: cancelFunc}
 		} else if !queued {
-			q.next = futureTask.waiters
-			pointer := unsafe.Pointer(q.next)
-			queued = atomic.CompareAndSwapPointer(&pointer, q.next, q)
+			//q.next = futureTask.waiters
+			//pointer := unsafe.Pointer(q.next)
+			//queued = atomic.CompareAndSwapPointer(&pointer, q.next, q)
+			queued = atomic.CompareAndSwapUintptr((*uintptr)(unsafe.Pointer(&q.next)), uintptr(unsafe.Pointer(q.next)), uintptr(unsafe.Pointer(q)))
 		} else if timed {
 			nanos = deadline.Sub(time.Now())
 			if nanos <= 0 {
@@ -215,7 +244,10 @@ func (futureTask *FutureTask) awaitDone(ctx context.Context, cancelFunc context.
 			time.Sleep(nanos)
 		} else {
 			// park
-			<-q.gotx.Done()
+			select {
+			case <-q.gotx.Done():
+				// this node has been unpark
+			}
 		}
 	}
 }
@@ -241,8 +273,9 @@ retry:
 					continue retry
 				}
 			} else {
-				qPointer := unsafe.Pointer(q)
-				if !atomic.CompareAndSwapPointer(&qPointer, q, s) {
+				//qPointer := unsafe.Pointer(q)
+				//if !atomic.CompareAndSwapPointer(&qPointer, q, s) {
+				if !atomic.CompareAndSwapUintptr((*uintptr)(unsafe.Pointer(&q)), uintptr(unsafe.Pointer(q)), uintptr(unsafe.Pointer(s))) {
 					continue retry
 				}
 			}
@@ -250,3 +283,8 @@ retry:
 		break
 	}
 }
+
+
+/*
+atomic.CompareAndSwapUintptr((*uintptr)(unsafe.Pointer(&person.Next)), uintptr(unsafe.Pointer(person.Next)), uintptr(unsafe.Pointer(newPerson)))
+ */

@@ -1,6 +1,7 @@
 package future
 
 import (
+	"context"
 	"time"
 )
 
@@ -13,6 +14,6 @@ type Future interface {
 }
 
 type ExecutableFuture interface {
-	Run()
+	Run(parentCtx context.Context)
 }
 
