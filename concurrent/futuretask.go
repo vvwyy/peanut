@@ -57,26 +57,45 @@ func (futureTask *FutureTask) Run() {
 		return
 	}
 
+	c := make(chan error, 1)
+
 	go func() {
 		result, err := e()
 		if err != nil {
 			futureTask.setError(err)
+			c <- err
 		} else {
 			futureTask.setResult(result)
+			c <- nil
 		}
 	}()
 
-ret:
-	for {
-		select {
-		case <-futureTask.runnerCtx.Done():
-			break ret
-		default:
-			if futureTask.IsDone() {
-				break ret
-			}
+	select {
+	case <-futureTask.runnerCtx.Done():
+		futureTask.setError(futureTask.runnerCtx.Err())
+	case err := <-c:
+		if err != nil {
+			futureTask.setError(err)
 		}
 	}
+
+
+//ret:
+//	for {
+//		select {
+//		case <-futureTask.runnerCtx.Done():
+//			futureTask.setError(futureTask.runnerCtx.Err())
+//			break ret
+//		case err := <-c:
+//			if err != nil {
+//				futureTask.setError(err)
+//			}
+//		default:
+//			if futureTask.IsDone() {
+//				break ret
+//			}
+//		}
+//	}
 
 	state := futureTask.state
 	if state >= INTERRUPTING {
@@ -163,6 +182,9 @@ func (futureTask *FutureTask) report(state int32) (interface{}, error) {
 }
 
 func (futureTask *FutureTask) setError(err error) {
+	if err == nil {
+		return
+	}
 	if atomic.CompareAndSwapInt32(&futureTask.state, NEW, COMPLETING) {
 		futureTask.mu.Lock()
 		futureTask.err = err
@@ -174,6 +196,9 @@ func (futureTask *FutureTask) setError(err error) {
 }
 
 func (futureTask *FutureTask) setResult(ret interface{}) {
+	if ret == nil {
+		return
+	}
 	if atomic.CompareAndSwapInt32(&futureTask.state, NEW, COMPLETING) {
 		futureTask.mu.Lock()
 		futureTask.err = nil

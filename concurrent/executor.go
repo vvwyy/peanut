@@ -21,6 +21,13 @@ func NewExecutor() *Executor {
 }
 
 func (executor *Executor) Go(executable Executable) (Future, error) {
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//
+	//		fmt.Println("Recovered in f", r)
+	//	}
+	//}()
+
 	f, err := executor.newTaskFor(executable)
 	if err != nil {
 		return nil, err

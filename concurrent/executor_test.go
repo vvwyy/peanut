@@ -323,31 +323,30 @@ func TestExecutor_Go_10(t *testing.T) {
 }
 
 
-func Example04() {
+func TestExecutor_Go_11(t *testing.T) {
 	executor := NewExecutor()
 
 	executable := func() (interface{}, error) {
-		return Person{
-			Name: "Bennett",
-			Age: 22,
-		}, nil
+		time.Sleep(10*time.Second)
+		return "Executable", nil
 	}
 
 	f, err := executor.Go(executable)
 	if err != nil {
-		fmt.Println(err)
-		return
+		t.Logf("executor go failed. Err: %s", err)
+		t.FailNow()
 	}
+
+	go func() {
+		time.Sleep(2*time.Second)
+		executor.Shutdown()
+	}()
 
 	ret, err := f.Get()
 	if err != nil {
-		fmt.Println(err)
-		return
+		t.Logf("future get result failed. Err: %s", err)
 	} else {
-		fmt.Println("result is : ", ret)
+		t.FailNow()
 	}
-
-	if p, ok :=ret.(Person); ok {
-		fmt.Println(p.Name, p.Age)
-	}
+	fmt.Println("future.Get(), result is : ", ret)
 }
