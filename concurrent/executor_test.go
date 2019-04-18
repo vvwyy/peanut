@@ -266,12 +266,11 @@ func TestExecutor_Go_8(t *testing.T) {
 	}
 }
 
-
 func TestExecutor_Go_9(t *testing.T) {
 	executor := NewExecutor()
 
 	executable := func() (interface{}, error) {
-		time.Sleep(100*time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		return nil, errors.New("some error")
 	}
 
@@ -281,10 +280,108 @@ func TestExecutor_Go_9(t *testing.T) {
 		t.FailNow()
 	}
 
-	_, err = f.GetWithTimeout(200*time.Millisecond)
+	_, err = f.GetWithTimeout(200 * time.Millisecond)
 	if err != nil {
 		t.Logf("future get result failed. Err: %s", err)
 	} else {
 		t.FailNow()
 	}
+}
+
+func Example01() {
+	executor := NewExecutor()
+
+	// 定义任务
+	executable1 := func() (interface{}, error) {
+		return "Executable-1", nil
+	}
+	executable2 := func() (interface{}, error) {
+		return "Executable-2", nil
+	}
+
+	// 提交执行
+	future1, err := executor.Go(executable1)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	future2, err := executor.Go(executable2)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 获取结果
+	ret, err := future1.Get()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("result is : ", ret)
+	}
+
+	ret, err = future2.Get()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("result is : ", ret)
+	}
+}
+
+func Example02() {
+	executor := NewExecutor()
+
+	// 定义任务
+	executable := func() (interface{}, error) {
+		// execute some time
+		time.Sleep(1 * time.Second)
+		return "Executable", nil
+	}
+
+	// 提交执行
+	f, err := executor.Go(executable)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// 可超时获取结果
+	ret, err := f.GetWithTimeout(500 * time.Millisecond)
+	if err != nil {
+		fmt.Println("timeout")
+	} else {
+		fmt.Println("result is : ", ret)
+	}
+}
+
+
+func Example03() {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+		return "Executable", nil
+	}
+
+	future, err := executor.Go(executable)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	go func() {
+		ret, err := future.Get()  // Get
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println("result is : ", ret)
+		}
+	}()
+
+	ret, err := future.Get() // Get
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("result is : ", ret)
+	}
+
+	time.Sleep(1 * time.Second) // waiting for goroutine
 }
