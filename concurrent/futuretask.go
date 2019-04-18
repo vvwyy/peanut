@@ -10,7 +10,7 @@ import (
 
 const (
 	// NEW -> COMPLETING -> NORMAL
-	// NEW -> COMPLETING -> EXCEPTIONAL
+	// NEW -> COMPLETING -> ERROR
 	// NEW -> CANCELLED
 	// NEW -> INTERRUPTING -> INTERRUPTED
 	NIL          = int32(-1)
