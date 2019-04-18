@@ -1,6 +1,7 @@
 package concurrent
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -241,4 +242,49 @@ func TestExecutor_Go_7(t *testing.T) {
 		fmt.Println("future.Get(), result is : ", ret)
 	}
 
+}
+
+func TestExecutor_Go_8(t *testing.T) {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+
+		return nil, errors.New("some error")
+	}
+
+	f, err := executor.Go(executable)
+	if err != nil {
+		t.Logf("executor go failed. Err: %s", err)
+		t.FailNow()
+	}
+
+	_, err = f.Get()
+	if err != nil {
+		t.Logf("future get result failed. Err: %s", err)
+	} else {
+		t.FailNow()
+	}
+}
+
+
+func TestExecutor_Go_9(t *testing.T) {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+		time.Sleep(100*time.Millisecond)
+		return nil, errors.New("some error")
+	}
+
+	f, err := executor.Go(executable)
+	if err != nil {
+		t.Logf("executor go failed. Err: %s", err)
+		t.FailNow()
+	}
+
+	_, err = f.GetWithTimeout(200*time.Millisecond)
+	if err != nil {
+		t.Logf("future get result failed. Err: %s", err)
+	} else {
+		t.FailNow()
+	}
 }
