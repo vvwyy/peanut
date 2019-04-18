@@ -150,6 +150,35 @@ func Example04() {
 }
 ```
 
+**Example 5**: `executor#Shutdown`
+```
+func Example05() {
+	executor := NewExecutor()
 
+	executable := func() (interface{}, error) {
+		time.Sleep(10*time.Second)
+		return "Executable", nil
+	}
+
+	f, err := executor.Go(executable)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	go func() {
+		time.Sleep(2*time.Second)
+		executor.Shutdown()
+	}()
+
+	ret, err := f.Get()
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("result is : ", ret)
+		return
+	}
+}
+```
 
 
