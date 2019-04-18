@@ -112,7 +112,7 @@ func Example03() {
 }
 ```
 
-**Example 3**: 
+**Example 4**: 
 ```
 type Person struct {
 	Name string
