@@ -1,9 +1,14 @@
-package future
+package concurrent
 
 import (
-	"context"
 	"time"
 )
+
+//type Executable interface {
+//	Run() (interface{}, error)
+//}
+
+type Executable func () (interface{}, error)
 
 type Future interface {
 	Cancel(mayInterruptIfRunning bool) bool
@@ -14,6 +19,6 @@ type Future interface {
 }
 
 type ExecutableFuture interface {
-	Run(parentCtx context.Context)
+	Run()
 }
 
