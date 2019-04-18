@@ -112,6 +112,43 @@ func Example03() {
 }
 ```
 
+**Example 3**: 
+```
+type Person struct {
+	Name string
+	Age int32
+}
+
+
+func Example04() {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+		return Person{
+			Name: "Bennett",
+			Age: 22,
+		}, nil
+	}
+
+	f, err := executor.Go(executable)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	ret, err := f.Get()
+	if err != nil {
+		fmt.Println(err)
+		return
+	} else {
+		fmt.Println("result is : ", ret)
+	}
+
+	if p, ok :=ret.(Person); ok {
+		fmt.Println(p.Name, p.Age)
+	}
+}
+```
 
 
 

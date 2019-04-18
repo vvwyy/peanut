@@ -288,100 +288,66 @@ func TestExecutor_Go_9(t *testing.T) {
 	}
 }
 
-func Example01() {
+type Person struct {
+	Name string
+	Age int32
+}
+
+func TestExecutor_Go_10(t *testing.T) {
 	executor := NewExecutor()
 
-	// 定义任务
-	executable1 := func() (interface{}, error) {
-		return "Executable-1", nil
-	}
-	executable2 := func() (interface{}, error) {
-		return "Executable-2", nil
-	}
-
-	// 提交执行
-	future1, err := executor.Go(executable1)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	future2, err := executor.Go(executable2)
-	if err != nil {
-		fmt.Println(err)
-		return
+	executable := func() (interface{}, error) {
+		return Person{
+			Name: "Bennett",
+			Age: 22,
+		}, nil
 	}
 
-	// 获取结果
-	ret, err := future1.Get()
+	f, err := executor.Go(executable)
 	if err != nil {
-		fmt.Println(err)
+		t.Logf("executor go failed. Err: %s", err)
+		t.FailNow()
+	}
+
+	ret, err := f.Get()
+	if err != nil {
+		t.Logf("future get result failed. Err: %s", err)
+		t.FailNow()
 	} else {
-		fmt.Println("result is : ", ret)
+		fmt.Println("future.Get(), result is : ", ret)
 	}
 
-	ret, err = future2.Get()
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println("result is : ", ret)
+	if p, ok :=ret.(Person); ok {
+		fmt.Println(p.Name, p.Age)
 	}
 }
 
-func Example02() {
+
+func Example04() {
 	executor := NewExecutor()
 
-	// 定义任务
 	executable := func() (interface{}, error) {
-		// execute some time
-		time.Sleep(1 * time.Second)
-		return "Executable", nil
+		return Person{
+			Name: "Bennett",
+			Age: 22,
+		}, nil
 	}
 
-	// 提交执行
 	f, err := executor.Go(executable)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	// 可超时获取结果
-	ret, err := f.GetWithTimeout(500 * time.Millisecond)
-	if err != nil {
-		fmt.Println("timeout")
-	} else {
-		fmt.Println("result is : ", ret)
-	}
-}
-
-
-func Example03() {
-	executor := NewExecutor()
-
-	executable := func() (interface{}, error) {
-		return "Executable", nil
-	}
-
-	future, err := executor.Go(executable)
+	ret, err := f.Get()
 	if err != nil {
 		fmt.Println(err)
 		return
-	}
-
-	go func() {
-		ret, err := future.Get()  // Get
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println("result is : ", ret)
-		}
-	}()
-
-	ret, err := future.Get() // Get
-	if err != nil {
-		fmt.Println(err)
 	} else {
 		fmt.Println("result is : ", ret)
 	}
 
-	time.Sleep(1 * time.Second) // waiting for goroutine
+	if p, ok :=ret.(Person); ok {
+		fmt.Println(p.Name, p.Age)
+	}
 }
