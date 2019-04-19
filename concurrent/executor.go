@@ -2,7 +2,6 @@ package concurrent
 
 import (
 	"context"
-	"errors"
 )
 
 type Executor struct {
@@ -20,7 +19,7 @@ func NewExecutor() *Executor {
 	}
 }
 
-func (executor *Executor) Go(executable Executable) (Future, error) {
+func (executor *Executor) Go(executable Executable) Future {
 	//defer func() {
 	//	if r := recover(); r != nil {
 	//
@@ -28,33 +27,39 @@ func (executor *Executor) Go(executable Executable) (Future, error) {
 	//	}
 	//}()
 
-	f, err := executor.newTaskFor(executable)
-	if err != nil {
-		return nil, err
-	}
-	err = executor.execute(f)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
+	//f, err := executor.newTaskFor(executable)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//err = executor.execute(f)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return f, nil
+
+
+	f := executor.newTaskFor(executable)
+	executor.execute(f)
+	return f
+
 }
 
-func (executor *Executor) newTaskFor(executable Executable) (*FutureTask, error) {
-	if executable == nil {
-		return nil, errors.New("executable is nil")
-	}
-	return NewFutureTask(executor.ctx, executable), nil
+func (executor *Executor) newTaskFor(executable Executable) *FutureTask {
+	//if executable == nil {
+	//	return nil, errors.New("executable is nil")
+	//}
+	return NewFutureTask(executor.ctx, executable)
 }
 
-func (executor *Executor) execute(f ExecutableFuture) error {
-	if f == nil {
-		return errors.New("executable future is nil")
-	}
+func (executor *Executor) execute(f ExecutableFuture) {
+	//if f == nil {
+	//	return errors.New("executable future is nil")
+	//}
 	go func() {
 		f.Run()
 	}()
 
-	return nil
+	//return nil
 }
 
 func (executor *Executor) Shutdown() {

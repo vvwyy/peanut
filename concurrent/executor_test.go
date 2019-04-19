@@ -15,11 +15,7 @@ func TestExecutor_Go(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	ret, err := f.Get()
 	if err != nil {
@@ -38,11 +34,7 @@ func TestExecutor_Go_1(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	ret, err := f.Get()
 	if err != nil {
@@ -63,17 +55,8 @@ func TestExecutor_Go_2(t *testing.T) {
 		return "Executable-2", nil
 	}
 
-	f1, err := executor.Go(executable1)
-	if err != nil {
-		t.Logf("executor go-1 failed. Err: %s", err)
-		t.FailNow()
-	}
-
-	f2, err := executor.Go(executable2)
-	if err != nil {
-		t.Logf("executor go-2 failed. Err: %s", err)
-		t.FailNow()
-	}
+	f1 := executor.Go(executable1)
+	f2 := executor.Go(executable2)
 
 	ret1, err := f1.Get()
 	if err != nil {
@@ -97,11 +80,7 @@ func TestExecutor_Go_3(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	go func() {
 		ret, err := f.Get()
@@ -129,11 +108,7 @@ func TestExecutor_Go_4(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	go func() {
 		ret, err := f.Get()
@@ -172,13 +147,9 @@ func TestExecutor_Go_5(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
-	_, err = f.GetWithTimeout(500 * time.Millisecond)
+	_, err := f.GetWithTimeout(500 * time.Millisecond)
 	if err != nil {
 		t.Logf("future get result is timeout. Err: %s", err)
 	} else {
@@ -195,11 +166,7 @@ func TestExecutor_Go_6(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	ret, err := f.GetWithTimeout(2 * time.Second)
 	if err != nil {
@@ -219,14 +186,11 @@ func TestExecutor_Go_7(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
+
 
 	go func() {
-		_, err = f.GetWithTimeout(500 * time.Millisecond)
+		_, err := f.GetWithTimeout(500 * time.Millisecond)
 		if err != nil {
 			t.Logf("[Go] future get result is timeout. Err: %s", err)
 		} else {
@@ -252,13 +216,9 @@ func TestExecutor_Go_8(t *testing.T) {
 		return nil, errors.New("some error")
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
-	_, err = f.Get()
+	_, err := f.Get()
 	if err != nil {
 		t.Logf("future get result failed. Err: %s", err)
 	} else {
@@ -274,13 +234,9 @@ func TestExecutor_Go_9(t *testing.T) {
 		return nil, errors.New("some error")
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
-	_, err = f.GetWithTimeout(200 * time.Millisecond)
+	_, err := f.GetWithTimeout(200 * time.Millisecond)
 	if err != nil {
 		t.Logf("future get result failed. Err: %s", err)
 	} else {
@@ -303,11 +259,7 @@ func TestExecutor_Go_10(t *testing.T) {
 		}, nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	ret, err := f.Get()
 	if err != nil {
@@ -331,11 +283,7 @@ func TestExecutor_Go_11(t *testing.T) {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		t.Logf("executor go failed. Err: %s", err)
-		t.FailNow()
-	}
+	f := executor.Go(executable)
 
 	go func() {
 		time.Sleep(2*time.Second)
@@ -349,4 +297,39 @@ func TestExecutor_Go_11(t *testing.T) {
 		t.FailNow()
 	}
 	fmt.Println("future.Get(), result is : ", ret)
+}
+
+
+func TestExecutor_Go_12(t *testing.T) {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+		p1 := &Person{
+			Name: "Bennett",
+			Age: 22,
+		}
+		p2 := &Person{
+			Name: "Cook",
+			Age: 23,
+		}
+
+		return []*Person{p1, p2}, nil
+	}
+
+	f := executor.Go(executable)
+
+	ret, err := f.Get()
+	if err != nil {
+		t.Logf("future get result failed. Err: %s", err)
+		t.FailNow()
+	} else {
+		fmt.Println("future.Get(), result is : ", ret)
+	}
+
+	if ps, ok :=ret.([]*Person); ok {
+		fmt.Println(len(ps))
+		for _, p := range ps {
+			fmt.Println(p)
+		}
+	}
 }
