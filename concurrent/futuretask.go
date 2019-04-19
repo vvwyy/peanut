@@ -281,7 +281,12 @@ func (futureTask *FutureTask) awaitDone(timed bool, nanos time.Duration) (int32,
 				futureTask.removeWaiter(q)
 				return futureTask.state, nil
 			}
-			time.Sleep(nanos)
+			select {
+			case <-q.gotx.Done():
+				break
+			case <-time.After(nanos * time.Nanosecond):
+				// timeout
+			}
 		} else {
 			// park
 			select {
