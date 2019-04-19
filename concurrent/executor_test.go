@@ -333,3 +333,24 @@ func TestExecutor_Go_12(t *testing.T) {
 		}
 	}
 }
+
+func TestExecutor_Go_13(t *testing.T) {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+		// execute some time
+		time.Sleep(500 * time.Millisecond)
+		return "Executable", nil
+	}
+
+	f := executor.Go(executable)
+
+	ret, err := f.GetWithTimeout(1 * time.Second)
+	if err != nil {
+		t.Logf("future get result is timeout. Err: %s", err)
+		t.FailNow()
+	} else {
+		fmt.Println("future.Get(), result is : ", ret)
+	}
+}
+
