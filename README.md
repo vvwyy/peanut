@@ -20,16 +20,8 @@ func Example01() {
 	}
 
 	// 提交执行
-	future1, err := executor.Go(executable1)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	future2, err := executor.Go(executable2)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	future1 := executor.Go(executable1)
+	future2 := executor.Go(executable2)
 
 	// 获取结果
 	ret, err := future1.Get()
@@ -61,11 +53,7 @@ func Example02() {
 	}
 
 	// 提交执行
-	f, err := executor.Go(executable)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	f := executor.Go(executable)
 
 	// 可超时获取结果
 	ret, err := f.GetWithTimeout(500 * time.Millisecond)
@@ -86,11 +74,7 @@ func Example03() {
 		return "Executable", nil
 	}
 
-	future, err := executor.Go(executable)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	future := executor.Go(executable)
 
 	go func() {
 		ret, err := future.Get()  // Get 
@@ -130,11 +114,7 @@ func Example04() {
 		}, nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	f := executor.Go(executable)
 
 	ret, err := f.Get()
 	if err != nil {
@@ -160,11 +140,7 @@ func Example05() {
 		return "Executable", nil
 	}
 
-	f, err := executor.Go(executable)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	f := executor.Go(executable)
 
 	go func() {
 		time.Sleep(2*time.Second)
