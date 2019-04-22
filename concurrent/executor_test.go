@@ -3,6 +3,7 @@ package concurrent
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -188,7 +189,6 @@ func TestExecutor_Go_7(t *testing.T) {
 
 	f := executor.Go(executable)
 
-
 	go func() {
 		_, err := f.GetWithTimeout(500 * time.Millisecond)
 		if err != nil {
@@ -246,7 +246,7 @@ func TestExecutor_Go_9(t *testing.T) {
 
 type Person struct {
 	Name string
-	Age int32
+	Age  int32
 }
 
 func TestExecutor_Go_10(t *testing.T) {
@@ -255,7 +255,7 @@ func TestExecutor_Go_10(t *testing.T) {
 	executable := func() (interface{}, error) {
 		return Person{
 			Name: "Bennett",
-			Age: 22,
+			Age:  22,
 		}, nil
 	}
 
@@ -269,24 +269,23 @@ func TestExecutor_Go_10(t *testing.T) {
 		fmt.Println("future.Get(), result is : ", ret)
 	}
 
-	if p, ok :=ret.(Person); ok {
+	if p, ok := ret.(Person); ok {
 		fmt.Println(p.Name, p.Age)
 	}
 }
-
 
 func TestExecutor_Go_11(t *testing.T) {
 	executor := NewExecutor()
 
 	executable := func() (interface{}, error) {
-		time.Sleep(10*time.Second)
+		time.Sleep(10 * time.Second)
 		return "Executable", nil
 	}
 
 	f := executor.Go(executable)
 
 	go func() {
-		time.Sleep(2*time.Second)
+		time.Sleep(2 * time.Second)
 		executor.Shutdown()
 	}()
 
@@ -299,18 +298,17 @@ func TestExecutor_Go_11(t *testing.T) {
 	fmt.Println("future.Get(), result is : ", ret)
 }
 
-
 func TestExecutor_Go_12(t *testing.T) {
 	executor := NewExecutor()
 
 	executable := func() (interface{}, error) {
 		p1 := &Person{
 			Name: "Bennett",
-			Age: 22,
+			Age:  22,
 		}
 		p2 := &Person{
 			Name: "Cook",
-			Age: 23,
+			Age:  23,
 		}
 
 		return []*Person{p1, p2}, nil
@@ -326,7 +324,7 @@ func TestExecutor_Go_12(t *testing.T) {
 		fmt.Println("future.Get(), result is : ", ret)
 	}
 
-	if ps, ok :=ret.([]*Person); ok {
+	if ps, ok := ret.([]*Person); ok {
 		fmt.Println(len(ps))
 		for _, p := range ps {
 			fmt.Println(p)
@@ -354,7 +352,6 @@ func TestExecutor_Go_13(t *testing.T) {
 	}
 }
 
-
 func TestExecutor_Go_14(t *testing.T) {
 	executor := NewExecutor()
 
@@ -371,4 +368,34 @@ func TestExecutor_Go_14(t *testing.T) {
 	} else {
 		t.FailNow()
 	}
+}
+
+func TestExecutor_Go_15(t *testing.T) {
+	executor := NewExecutor()
+
+	futures := make([]Future, 0)
+	for i := 0; i < 10; i++ {
+		count := i
+		future := executor.Go(func() (interface{}, error) {
+			seconds := time.Duration(time.Now().Second() * 10)
+			time.Sleep(seconds * time.Millisecond)
+			return fmt.Sprintf("Executable-%d", count), nil
+		})
+		futures = append(futures, future)
+	}
+
+	wg := sync.WaitGroup{}
+	for _, future := range futures {
+		wg.Add(1)
+		go func(f Future) {
+			ret, err := f.Get()
+			if err != nil {
+				t.FailNow()
+			} else {
+				t.Logf("result is: %s", ret)
+			}
+			wg.Done()
+		}(future)
+	}
+	wg.Wait()
 }

@@ -157,4 +157,37 @@ func Example05() {
 }
 ```
 
+**Example 6** 批量处理
+```
+func Example6() {
+	executor := NewExecutor()
+
+	futures := make([]Future, 0)
+
+	for i := 0; i < 10; i++ {
+		count := i
+		future := executor.Go(func() (interface{}, error) {
+			seconds := time.Duration(time.Now().Second() * 10)
+			time.Sleep(seconds * time.Millisecond)
+			return fmt.Sprintf("Executable-%d", count), nil
+		})
+		futures = append(futures, future)
+	}
+
+	wg := sync.WaitGroup{}
+	for _, future := range futures {
+		wg.Add(1)
+		go func(f Future) {
+			ret, err := f.Get()
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Printf("result is: %s \n", ret)
+			}
+			wg.Done()
+		}(future)
+	}
+	wg.Wait()
+}
+```
 
