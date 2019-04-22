@@ -353,3 +353,22 @@ func TestExecutor_Go_13(t *testing.T) {
 		fmt.Println("future.Get(), result is : ", ret)
 	}
 }
+
+
+func TestExecutor_Go_14(t *testing.T) {
+	executor := NewExecutor()
+
+	executable := func() (interface{}, error) {
+		panic("Some panic")
+		return "Executable", nil
+	}
+
+	f := executor.Go(executable)
+
+	_, err := f.Get()
+	if err != nil {
+		t.Logf("Recover executable panic. Err: %s", err)
+	} else {
+		t.FailNow()
+	}
+}

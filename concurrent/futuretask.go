@@ -2,6 +2,8 @@ package concurrent
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,10 +26,11 @@ const (
 )
 
 type FutureTask struct {
-	mu           sync.Mutex // protects following fields
-	state        int32
-	executable   Executable
-	waiters      *WaitNode
+	mu         sync.Mutex // protects following fields
+	state      int32
+	executable Executable
+	waiters    *WaitNode
+
 	runnerCtx    context.Context
 	runnerCancel context.CancelFunc
 
@@ -60,6 +63,12 @@ func (futureTask *FutureTask) Run() {
 	c := make(chan error, 1)
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				futureTask.setError(errors.New(fmt.Sprintf("%s", r)))
+			}
+		}()
+
 		result, err := e()
 		if err != nil {
 			futureTask.setError(err)
@@ -78,24 +87,6 @@ func (futureTask *FutureTask) Run() {
 			futureTask.setError(err)
 		}
 	}
-
-
-//ret:
-//	for {
-//		select {
-//		case <-futureTask.runnerCtx.Done():
-//			futureTask.setError(futureTask.runnerCtx.Err())
-//			break ret
-//		case err := <-c:
-//			if err != nil {
-//				futureTask.setError(err)
-//			}
-//		default:
-//			if futureTask.IsDone() {
-//				break ret
-//			}
-//		}
-//	}
 
 	state := futureTask.state
 	if state >= INTERRUPTING {
@@ -137,6 +128,10 @@ func (futureTask *FutureTask) IsDone() bool {
 	return futureTask.state != NEW
 }
 
+func (futureTask *FutureTask) Err() error {
+	return futureTask.err
+}
+
 func (futureTask *FutureTask) Get() (interface{}, error) {
 	s := futureTask.state
 	if s <= COMPLETING {
@@ -171,14 +166,19 @@ func (futureTask *FutureTask) createWithCancel() (context.Context, context.Cance
 }
 
 func (futureTask *FutureTask) report(state int32) (interface{}, error) {
+	// Thinking: whether need to check status
 	ret := futureTask.result
+	err := futureTask.err
 	if state == NORMAL {
 		return ret, nil
 	}
 	if state >= CANCELLED {
 		return nil, CancellationError
 	}
-	return nil, ExecutionError
+	if err == nil {
+		return nil, ExecutionError
+	}
+	return nil, err
 }
 
 func (futureTask *FutureTask) setError(err error) {
