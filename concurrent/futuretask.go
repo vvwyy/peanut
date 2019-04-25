@@ -65,13 +65,12 @@ func (futureTask *FutureTask) Run() {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				futureTask.setError(errors.New(fmt.Sprintf("%s", r)))
+				c <- errors.New(fmt.Sprintf("%s", r))
 			}
 		}()
 
 		result, err := e()
 		if err != nil {
-			futureTask.setError(err)
 			c <- err
 		} else {
 			futureTask.setResult(result)

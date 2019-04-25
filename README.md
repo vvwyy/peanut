@@ -6,6 +6,22 @@
 - executor 执行任务管理器
 - future 及其相关接口，是对任务的抽象，提供对任务进行查询是否完成、获取执行接口、超时控制等接口
 
+**Example 0**： 
+```
+func Example() {
+	executor := NewExecutor()
+
+	ret, err := executor.Go(func() (interface{}, error) {
+		return "Executable", nil
+	}).Get()
+
+	if err != nil {
+		return
+	}
+	fmt.Println("future.Get(), result is : ", ret)
+}
+```
+
 **Example 1**： 
 ```
 func Example01() {

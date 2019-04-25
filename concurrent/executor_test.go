@@ -11,6 +11,20 @@ import (
 func TestExecutor_Go(t *testing.T) {
 	executor := NewExecutor()
 
+	ret, err := executor.Go(func() (interface{}, error) {
+		return "Executable", nil
+	}).Get()
+
+	if err != nil {
+		t.Logf("future get result failed. Err: %s", err)
+		t.FailNow()
+	}
+	fmt.Println("future.Get(), result is : ", ret)
+}
+
+func TestExecutor_Go_0(t *testing.T) {
+	executor := NewExecutor()
+
 	executable := func() (interface{}, error) {
 
 		return "Executable", nil
