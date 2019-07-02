@@ -1,7 +1,45 @@
 # Peanut
 > peanut is for gopher
 
-## concurrent package
+## common.cache
+
+- 一个内存缓存工具，通过设置访问失效或者写入失效时长来控制内存缓存；
+- 提供 Loader 接口，可以动态加载非缓存数据到缓存；
+- 内部采用读写分离设计，充分提高并发下效率；
+
+#### 1. 定义 cache loader
+
+```
+type DemoLoader struct {
+    // add something
+}
+
+func (loader *DemoLoader) Load(key interface{}) (interface{}, error) {
+    // do loading
+	return value, nil
+}
+```
+
+#### 2. 创建 Cache
+
+- `ExpireAfterWrite`： 控制写入失效时长
+- `ExpireAfterAccess`：控制访问失效时长
+```
+cache := newBuilder().
+		ExpireAfterWrite(100 * time.Second).
+		ExpireAfterAccess(200 * time.Second).
+		Build(loader)
+```
+
+#### 3. 使用 Cache 接口
+```
+cache.Put(key, value)
+cache.GetIfPresent(key)
+cache.Get(key)
+```
+
+
+## concurrent
 
 - executor 执行任务管理器
 - future 及其相关接口，是对任务的抽象，提供对任务进行查询是否完成、获取执行接口、超时控制等接口
