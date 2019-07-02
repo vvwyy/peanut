@@ -1,6 +1,12 @@
 # Peanut
 > peanut is for gopher
 
+## 包结构
+- common
+    + cache
+- concurrent
+
+
 ## common.cache
 
 - 一个内存缓存工具，通过设置访问失效或者写入失效时长来控制内存缓存；
