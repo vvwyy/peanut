@@ -7,7 +7,7 @@ type Builder struct {
 	expireAfterWriteDuration  time.Duration
 }
 
-func newBuilder() *Builder {
+func NewBuilder() *Builder {
 	return &Builder{
 		expireAfterAccessDuration: 0,
 		expireAfterWriteDuration:  0,

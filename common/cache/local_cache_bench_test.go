@@ -17,7 +17,7 @@ type bench struct {
 
 func benchMap(b *testing.B, bench bench) {
 
-	cache := newBuilder().
+	cache := NewBuilder().
 		Build(loader)
 	b.Run(fmt.Sprintf("%T", cache), func(b *testing.B) {
 		cache = reflect.New(reflect.TypeOf(cache).Elem()).Interface().(*localCache)
