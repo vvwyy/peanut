@@ -1,6 +1,10 @@
 # Peanut
 > peanut is for gopher
 
+```
+go get github.com/vvwyy/peanut
+```
+
 ## 包结构
 - common
     + cache

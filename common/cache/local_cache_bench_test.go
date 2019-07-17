@@ -11,8 +11,8 @@ import (
 var loader = &StringLoader{}
 
 type bench struct {
-	setup func(*testing.B, *localCache)
-	perG  func(b *testing.B, pb *testing.PB, i int, m *localCache)
+	setup func(*testing.B, *LocalCache)
+	perG  func(b *testing.B, pb *testing.PB, i int, m *LocalCache)
 }
 
 func benchMap(b *testing.B, bench bench) {
@@ -20,7 +20,7 @@ func benchMap(b *testing.B, bench bench) {
 	cache := NewBuilder().
 		Build(loader)
 	b.Run(fmt.Sprintf("%T", cache), func(b *testing.B) {
-		cache = reflect.New(reflect.TypeOf(cache).Elem()).Interface().(*localCache)
+		cache = reflect.New(reflect.TypeOf(cache).Elem()).Interface().(*LocalCache)
 		if bench.setup != nil {
 			bench.setup(b, cache)
 		}
@@ -33,7 +33,7 @@ func benchMap(b *testing.B, bench bench) {
 			bench.perG(b, pb, id*b.N, cache)
 		})
 	})
-	//for _, cache := range [...]*localCache{&localCache{loader: loader}} {
+	//for _, cache := range [...]*LocalCache{&LocalCache{loader: loader}} {
 	//
 	//}
 }
@@ -42,7 +42,7 @@ func BenchmarkLoadMostlyHits(b *testing.B) {
 	const hits, misses = 1023, 1
 
 	benchMap(b, bench{
-		setup: func(_ *testing.B, cache *localCache) {
+		setup: func(_ *testing.B, cache *LocalCache) {
 			//for i := 0; i < hits; i++ {
 			//	cache.Get(i)
 			//}
@@ -52,7 +52,7 @@ func BenchmarkLoadMostlyHits(b *testing.B) {
 			}
 		},
 
-		perG: func(b *testing.B, pb *testing.PB, i int, m *localCache) {
+		perG: func(b *testing.B, pb *testing.PB, i int, m *LocalCache) {
 			for ; pb.Next(); i++ {
 				m.GetIfPresent(i % (hits + misses))
 			}
@@ -64,13 +64,13 @@ func BenchmarkAdversarialDelete(b *testing.B) {
 	const mapSize = 1 << 10
 
 	benchMap(b, bench{
-		setup: func(_ *testing.B, cache *localCache) {
+		setup: func(_ *testing.B, cache *LocalCache) {
 			for i := 0; i < mapSize; i++ {
 				cache.Put(i, i)
 			}
 		},
 
-		perG: func(b *testing.B, pb *testing.PB, i int, cache *localCache) {
+		perG: func(b *testing.B, pb *testing.PB, i int, cache *LocalCache) {
 			for ; pb.Next(); i++ {
 				cache.GetIfPresent(i)
 

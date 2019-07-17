@@ -24,8 +24,8 @@ func (builder *Builder) ExpireAfterWrite(duration time.Duration) *Builder {
 	return builder
 }
 
-func (builder *Builder) Build(loader Loader) *localCache {
-	return &localCache{
+func (builder *Builder) Build(loader Loader) *LocalCache {
+	return &LocalCache{
 		expireAfterAccessDuration: builder.expireAfterAccessDuration,
 		expireAfterWriteDuration:  builder.expireAfterWriteDuration,
 		loader:                    loader,

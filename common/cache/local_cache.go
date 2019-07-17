@@ -26,7 +26,7 @@ const maximumCapacity int = 1 << 30
 // 4. double-checking。
 // 5. 延迟删除。 删除一个键值只是打标记，只有在提升dirty的时候才清理删除的数据。
 // 6. 优先从read读取、更新、删除，因为对read的读取不需要锁。
-type localCache struct {
+type LocalCache struct {
 	mu Mutex
 
 	read  atomic.Value // readOnly
@@ -50,7 +50,7 @@ var expunged = unsafe.Pointer(new(interface{}))
 
 type readOnly struct {
 	m       map[interface{}]*referenceEntry
-	amended bool // 当 localCache.dirty 中包含 m 中没有的 entry 时为 true
+	amended bool // 当 LocalCache.dirty 中包含 m 中没有的 entry 时为 true
 }
 
 // 1. nil: entry 已被删除了，并且 cache.dirty == nil
@@ -75,7 +75,7 @@ func newEntry(val interface{}) *referenceEntry {
 // =========== local cache
 // ========================================================================================================
 
-func (cache *localCache) Get(key interface{}) (interface{}, error) {
+func (cache *LocalCache) Get(key interface{}) (interface{}, error) {
 	read, _ := cache.read.Load().(readOnly)
 	if entry, ok := read.m[key]; ok {
 		now := time.Duration(time.Now().UnixNano())
@@ -169,7 +169,7 @@ func (cache *localCache) Get(key interface{}) (interface{}, error) {
 
 }
 
-func (cache *localCache) GetIfPresent(key interface{}) interface{} { //(interface{}, bool) {
+func (cache *LocalCache) GetIfPresent(key interface{}) interface{} { //(interface{}, bool) {
 	read, _ := cache.read.Load().(readOnly)
 	entry, ok := read.m[key]
 
@@ -199,7 +199,7 @@ func (cache *localCache) GetIfPresent(key interface{}) interface{} { //(interfac
 	return nil//, false
 }
 
-func (cache *localCache) Put(key, value interface{}) {
+func (cache *LocalCache) Put(key, value interface{}) {
 	read, _ := cache.read.Load().(readOnly)
 	now := time.Duration(time.Now().Nanosecond())
 	if entry, ok := read.m[key]; ok && entry.tryStore(&value) {
@@ -236,7 +236,7 @@ func (cache *localCache) Put(key, value interface{}) {
 	cache.mu.Unlock()
 }
 
-func (cache *localCache) Delete(key interface{}) {
+func (cache *LocalCache) Delete(key interface{}) {
 	read, _ := cache.read.Load().(readOnly)
 	entry, ok := read.m[key]
 	if !ok && read.amended {
@@ -253,7 +253,7 @@ func (cache *localCache) Delete(key interface{}) {
 	}
 }
 
-func (cache *localCache) Range(f func(key, value interface{}) bool) {
+func (cache *LocalCache) Range(f func(key, value interface{}) bool) {
 	// We need to be able to iterate over all of the keys that were already
 	// present at the start of the call to Range.
 	// If read.amended is false, then read.cache satisfies that property without
@@ -288,7 +288,7 @@ func (cache *localCache) Range(f func(key, value interface{}) bool) {
 
 // ------------------------------------------------------
 
-func (cache *localCache) missLocked() {
+func (cache *LocalCache) missLocked() {
 	cache.misses++
 	if cache.misses < len(cache.dirty) {
 		return
@@ -298,7 +298,7 @@ func (cache *localCache) missLocked() {
 	cache.misses = 0
 }
 
-func (cache *localCache) dirtyLocked() {
+func (cache *LocalCache) dirtyLocked() {
 	if cache.dirty != nil {
 		return
 	}
@@ -312,7 +312,7 @@ func (cache *localCache) dirtyLocked() {
 	}
 }
 
-func (cache *localCache) getLiveValue(entry *referenceEntry, now time.Duration) (interface{}, bool) {
+func (cache *LocalCache) getLiveValue(entry *referenceEntry, now time.Duration) (interface{}, bool) {
 	value, ok := entry.load()
 	if !ok {
 		return nil, false
@@ -324,13 +324,13 @@ func (cache *localCache) getLiveValue(entry *referenceEntry, now time.Duration) 
 	return value, true
 }
 
-func (cache *localCache) recordRead(entry *referenceEntry, now time.Duration) {
+func (cache *LocalCache) recordRead(entry *referenceEntry, now time.Duration) {
 	if cache.expiresAfterAccess() {
 		entry.accessTime = now
 	}
 }
 
-func (cache *localCache) recordWrite(entry *referenceEntry, now time.Duration) {
+func (cache *LocalCache) recordWrite(entry *referenceEntry, now time.Duration) {
 	if cache.expiresAfterAccess() {
 		entry.accessTime = now
 	}
@@ -339,7 +339,7 @@ func (cache *localCache) recordWrite(entry *referenceEntry, now time.Duration) {
 	}
 }
 
-func (cache *localCache) isExpired(entry *referenceEntry, now time.Duration) bool {
+func (cache *LocalCache) isExpired(entry *referenceEntry, now time.Duration) bool {
 	if cache.expiresAfterAccess() && (now-entry.accessTime >= cache.expireAfterAccessDuration) {
 		return true
 	}
@@ -349,22 +349,22 @@ func (cache *localCache) isExpired(entry *referenceEntry, now time.Duration) boo
 	return false
 }
 
-func (cache *localCache) expiresAfterAccess() bool {
+func (cache *LocalCache) expiresAfterAccess() bool {
 	return cache.expireAfterAccessDuration > 0
 }
 
-func (cache *localCache) expiresAfterWrite() bool {
+func (cache *LocalCache) expiresAfterWrite() bool {
 	return cache.expireAfterWriteDuration > 0
 }
 
-func (cache *localCache) tryExpireEntries(now time.Duration) {
+func (cache *LocalCache) tryExpireEntries(now time.Duration) {
 	if cache.mu.TryLock() { // NOTE: 这里只是尝试做过期标记，不做强制
 		cache.expireEntries(now)
 		cache.mu.Unlock()
 	}
 }
 
-func (cache *localCache) expireEntries(now time.Duration) {
+func (cache *LocalCache) expireEntries(now time.Duration) {
 	read, _ := cache.read.Load().(readOnly)
 	// 检查所有 entry，如果有过期的 entry，则进行过期标记
 	// NOTE: 这里不进行删除，删除只在 dirty 上升为 read 时进行
