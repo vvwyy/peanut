@@ -39,7 +39,6 @@ type LocalCache struct {
 	expireAfterAccessDuration time.Duration
 	expireAfterWriteDuration  time.Duration
 
-	//ticker time.Ticker
 	//statsCounter SimpleStatsCounter
 }
 
@@ -76,6 +75,15 @@ func newEntry(val interface{}) *referenceEntry {
 // ========================================================================================================
 
 func (cache *LocalCache) Get(key interface{}) (interface{}, error) {
+	return cache.GetWithLoader(key, cache.loader)
+}
+
+func (cache *LocalCache) GetWithLoader(key interface{}, loader Loader) (interface{}, error) {
+	// loader 为 nil 时，退化为 GetIfPresent
+	if loader == nil {
+		return cache.GetIfPresent(key), nil
+	}
+
 	read, _ := cache.read.Load().(readOnly)
 	if entry, ok := read.m[key]; ok {
 		now := time.Duration(time.Now().UnixNano())
@@ -107,7 +115,7 @@ func (cache *LocalCache) Get(key interface{}) (interface{}, error) {
 			}
 
 			// 通过 loader 获取新值
-			newValue, loadErr := cache.loader.Load(key)
+			newValue, loadErr := loader.Load(key)
 			if nil != loadErr {
 				return nil, loadErr
 			}
@@ -131,7 +139,7 @@ func (cache *LocalCache) Get(key interface{}) (interface{}, error) {
 			}
 
 			// 通过 loader 获取新值
-			newValue, loadErr := cache.loader.Load(key)
+			newValue, loadErr := loader.Load(key)
 			if nil != loadErr {
 				return nil, loadErr
 			}
@@ -148,7 +156,7 @@ func (cache *LocalCache) Get(key interface{}) (interface{}, error) {
 		cache.missLocked()
 	} else {
 		// 通过 loader 获取新值
-		newValue, loadErr := cache.loader.Load(key)
+		newValue, loadErr := loader.Load(key)
 		if nil != loadErr {
 			return nil, loadErr
 		}
@@ -166,7 +174,6 @@ func (cache *LocalCache) Get(key interface{}) (interface{}, error) {
 	//cache.mu.Unlock()
 
 	return actual, nil
-
 }
 
 func (cache *LocalCache) GetIfPresent(key interface{}) interface{} { //(interface{}, bool) {
