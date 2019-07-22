@@ -10,16 +10,18 @@ import (
 )
 
 type StringLoader struct {
+	prefix string
 }
 
 func (loader *StringLoader) Load(key interface{}) (interface{}, error) {
 	fmt.Printf("load from loader: %v \n", key)
-	return fmt.Sprintf("A-%v", key), nil
+	time.Sleep(100*time.Millisecond)
+	return fmt.Sprintf("%s-%v", loader.prefix, key), nil
 }
 
 func TestLocalCache(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	localCache := NewBuilder().
 		ExpireAfterWrite(3 * time.Second).
@@ -53,7 +55,7 @@ func TestLocalCache(t *testing.T) {
 
 func TestLocalCache1(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	localCache := NewBuilder().
 		ExpireAfterWrite(3 * time.Second).
@@ -93,7 +95,7 @@ func TestLocalCache1(t *testing.T) {
 
 func TestLocalCache2(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().
 		ExpireAfterWrite(3 * time.Second).
@@ -138,7 +140,7 @@ func TestLocalCache2(t *testing.T) {
 
 func TestLocalCache3(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().
 		ExpireAfterWrite(30 * time.Second).
@@ -183,7 +185,7 @@ func TestLocalCache3(t *testing.T) {
 
 func TestLocalCache4(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().
 		ExpireAfterWrite(3 * time.Second).
@@ -228,7 +230,7 @@ func TestLocalCache4(t *testing.T) {
 
 func TestLocalCache5(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().
 		ExpireAfterWrite(100 * time.Second).
@@ -261,7 +263,7 @@ func TestLocalCache5(t *testing.T) {
 
 func TestLocalCache6(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().
 		ExpireAfterWrite(100 * time.Second).
@@ -296,7 +298,7 @@ func TestLocalCache6(t *testing.T) {
 
 func TestLocalCache7(t *testing.T) {
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().
 		ExpireAfterWrite(100 * time.Second).
@@ -326,7 +328,7 @@ func TestLocalCache7(t *testing.T) {
 func TestConcurrentRange(t *testing.T) {
 	const mapSize = 1 << 10
 
-	loader := &StringLoader{}
+	loader := &StringLoader{prefix: "A"}
 
 	cache := NewBuilder().Build(loader)
 	for n := int64(1); n <= mapSize; n++ {
@@ -384,4 +386,34 @@ func TestConcurrentRange(t *testing.T) {
 			t.Fatalf("Range visited %v elements of %v-element Map", len(seen), mapSize)
 		}
 	}
+}
+
+func TestLocalCache8(t *testing.T)  {
+	loader := &StringLoader{prefix: "A"}
+	localCache := NewBuilder().
+		ExpireAfterAccess(5*time.Second).
+		Build(nil)
+
+	ret, err := localCache.GetWithLoader("1", loader)
+	if err != nil {
+		t.FailNow()
+	}
+	if value, ok := ret.(string); ok {
+		t.Logf("【1】%s", value)
+	} else {
+		t.FailNow()
+	}
+
+	loader.prefix = "B"
+	ret, err = localCache.GetWithLoader("1", loader)
+	t.Logf("【2】%v", ret)
+
+	time.Sleep(1*time.Second)
+	ret, err = localCache.GetWithLoader("1", loader)
+	t.Logf("【3】%v", ret)
+
+	time.Sleep(5*time.Second)
+
+	ret, err = localCache.GetWithLoader("1", loader)
+	t.Logf("【4】%v", ret)
 }

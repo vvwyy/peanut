@@ -40,12 +40,23 @@ cache := newBuilder().
 		ExpireAfterAccess(200 * time.Second).
 		Build(loader)
 ```
+or
+```
+cache := newBuilder().
+		ExpireAfterWrite(100 * time.Second).
+		ExpireAfterAccess(200 * time.Second).
+		Build(nil) // 可以在创建时不设置 loader
+```
+
+- 不在创建时设置 loader，Get() 方法会降级为 GetIfPresent() 方法；
+- 可以使用 GetWithLoader(key, loader) 方法来设置每次调用所需要的 loader；
 
 #### 3. 使用 Cache 接口
 ```
 cache.Put(key, value)
 cache.GetIfPresent(key)
 cache.Get(key)
+cache.GetWithLoader(key, loader)
 ```
 
 

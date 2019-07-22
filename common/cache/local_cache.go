@@ -100,7 +100,7 @@ func (cache *LocalCache) GetWithLoader(key interface{}, loader Loader) (interfac
 	defer cache.mu.Unlock()
 	read, _ = cache.read.Load().(readOnly)
 
-	now := time.Duration(time.Now().Nanosecond())
+	now := time.Duration(time.Now().UnixNano())
 
 	var actual interface{}
 	var existing bool
@@ -208,7 +208,7 @@ func (cache *LocalCache) GetIfPresent(key interface{}) interface{} { //(interfac
 
 func (cache *LocalCache) Put(key, value interface{}) {
 	read, _ := cache.read.Load().(readOnly)
-	now := time.Duration(time.Now().Nanosecond())
+	now := time.Duration(time.Now().UnixNano())
 	if entry, ok := read.m[key]; ok && entry.tryStore(&value) {
 		cache.recordWrite(entry, now)
 		return
